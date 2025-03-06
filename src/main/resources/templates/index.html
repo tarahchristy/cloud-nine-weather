@@ -92,7 +92,7 @@
                 const zipcode = encodeURIComponent(document.getElementById('zipcode').value);
                 
                 const response = await fetch(
-                    `/forecast?street=${street}&city=${city}&state=${state}&zipcode=${zipcode}`
+                    `/api/forecast?street=${street}&city=${city}&state=${state}&zipcode=${zipcode}`
                 );
                 
                 if (!response.ok) {

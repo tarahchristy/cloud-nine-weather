@@ -1,10 +1,8 @@
 package com.cloudnineweather.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -15,21 +13,19 @@ import com.cloudnineweather.model.WeatherDaily;
 import com.cloudnineweather.model.WeatherResponse;
 
 @Service
-public class ForcastService {
+public class ForecastService {
 
     private final RestTemplate restTemplate;
     private final GeocodingService geocodingService;
-    private final RedisTemplate<String, Object> redisTemplate;
-    
-    @Autowired
-    public ForcastService(RestTemplate restTemplate, GeocodingService geocodingService, RedisTemplate<String, Object> redisTemplate) {
+
+    public ForecastService(RestTemplate restTemplate, GeocodingService geocodingService) {
         this.restTemplate = restTemplate;
         this.geocodingService = geocodingService;
-        this.redisTemplate = redisTemplate;
     }
 
-    @Cacheable(value = "weather_forecast", key = "#address", unless = "#result == null")
-    public ForecastResponse getForcast(String address) {
+    //Using zipcode as the key to cache the forecast
+    @Cacheable(value = "weather_forecast", key = "#zipcode", unless = "#result == null")
+    public ForecastResponse getForecast(String address, String zipcode) {
         return fetchWeather(address);
     }
 
@@ -87,14 +83,14 @@ public class ForcastService {
         return forecast.toString();
     }
 
-    @CacheEvict(value = "weather_forecast", key = "#address")
-    public void clearForcast(String address) {
+    @CacheEvict(value = "weather_forecast", key = "#zipcode")
+    public void clearForecast(String zipcode) {
         // This method is intentionally left blank
     }
 
-    @CachePut(value = "weather_forecast", key = "#address")
-    public ForecastResponse updateForcast(String address) {
-        return getForcast(address);
+    @CachePut(value = "weather_forecast", key = "#zipcode")
+    public ForecastResponse updateForecast(String address, String zipcode) {
+        return getForecast(address, zipcode);
     }
 
 }
