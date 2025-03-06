@@ -2,7 +2,7 @@ package com.cloudnineweather.service;
 
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
-import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -17,19 +17,25 @@ public class ForecastService {
 
     private final RestTemplate restTemplate;
     private final GeocodingService geocodingService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
-    public ForecastService(RestTemplate restTemplate, GeocodingService geocodingService) {
+    public ForecastService(RestTemplate restTemplate, GeocodingService geocodingService, RedisTemplate<String, Object> redisTemplate) {
         this.restTemplate = restTemplate;
         this.geocodingService = geocodingService;
+        this.redisTemplate = redisTemplate;
+    }
+    
+    public ForecastResponse getForecast(String address, String zipcode) {
+        // Check if forecast exists in Redis cache
+        ForecastResponse cachedResponse = (ForecastResponse) redisTemplate.opsForValue().get("weather_forecast::" + zipcode);
+        if (cachedResponse != null) {
+            return new ForecastResponse(cachedResponse.getForecast(), true);
+        }
+        return fetchWeather(address, zipcode);
     }
 
     //Using zipcode as the key to cache the forecast
-    @Cacheable(value = "weather_forecast", key = "#zipcode", unless = "#result == null")
-    public ForecastResponse getForecast(String address, String zipcode) {
-        return fetchWeather(address);
-    }
-
-    private ForecastResponse fetchWeather(String address) {
+    private ForecastResponse fetchWeather(String address, String zipcode) {
         // Get coordinates from address
         GeoLocation location = geocodingService.getCoordinates(address);
         
@@ -45,7 +51,10 @@ public class ForecastService {
         try {
             WeatherResponse response = restTemplate.getForObject(url, WeatherResponse.class);
             String forecast = formatResponse(response);
-            return new ForecastResponse(forecast, false); 
+            ForecastResponse forecastResponse = new ForecastResponse(forecast, false);
+            // Store the entire ForecastResponse object
+            redisTemplate.opsForValue().set("weather_forecast::" + zipcode, forecastResponse);
+            return forecastResponse;
         } catch (RestClientException | IllegalArgumentException e) {
             return new ForecastResponse("Error fetching weather forecast: " + e.getMessage(), false);
         }

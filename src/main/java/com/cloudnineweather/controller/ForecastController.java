@@ -26,6 +26,7 @@ public class ForecastController {
         @RequestParam String zipcode
     ) {
         String address = String.format("%s, %s, %s %s", street, city, state, zipcode);
-        return forecastService.getForecast(address, zipcode);
+        ForecastResponse forecast = forecastService.getForecast(address, zipcode);
+        return forecast;
     }
 }
