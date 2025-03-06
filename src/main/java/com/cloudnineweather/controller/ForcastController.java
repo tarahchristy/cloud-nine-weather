@@ -1,16 +1,33 @@
 package com.cloudnineweather.controller;
 
-import org.springframework.stereotype.Controller;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+import com.cloudnineweather.model.ForecastResponse;
+import com.cloudnineweather.service.ForcastService;
+
+@RestController
 @RequestMapping("/forecast")
 public class ForcastController {
 
-    @GetMapping("/{address}")
-    public String getForecast(@PathVariable String address) {
-        return "Here is your forcast for " + address;
+    private final ForcastService forcastService;
+
+    @Autowired
+    public ForcastController(ForcastService forcastService) {
+        this.forcastService = forcastService;
+    }
+
+    @GetMapping
+    public ForecastResponse getForecast(
+        @RequestParam String street,
+        @RequestParam String city,
+        @RequestParam String state,
+        @RequestParam String zipcode
+    ) {
+        String address = String.format("%s, %s, %s %s", street, city, state, zipcode);
+        return forcastService.getForcast(address);
     }
 }
